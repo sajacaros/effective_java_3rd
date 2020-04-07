@@ -1,9 +1,9 @@
 ## 과도한 동기화는 피하라 - 동기화 영역을 최소화 하자.
-* 과도한 동기화는 성능을 떨어뜨리고, 교착상태에 바뜨리고 예측할 수 없는 동작 발생
+* 과도한 동기화는 성능을 떨어뜨리고, 교착상태에 빠트리고 예측할 수 없는 동작 발생
 * 동기화 메서드나 동기화 블록 안에서는 제어를 클라이언트에 양도하면 안 된다.
   - 재정의할 수 있는 메서드는 호출하면 안됨
   - 클라이언트가 넘겨준 함수 객체를 호출하면 안됨
-  => 동기화를 하는 클래스입장에서는 위의 두가지 경우 모두 외계인임
+  - => 동기화를 하는 클래스입장에서는 위의 두가지 경우 모두 외계인임
   - 외계인 메서드가 잘못 동작할 시
     - 예외를 일으킴
     - 교착상태 빠짐
@@ -24,7 +24,7 @@
           synchronized (observers) {
               return observers.remove(observer);
           }
-      }  
+      }
       private void notifyElementAdded(E element) {
           synchronized (observers) {
               for(SetObserver<E> observer : observers) 
@@ -100,16 +100,26 @@
     - 실패 방지
     - 동시성 효율 크게 개선
   ```
-  public void addObserver(SetObserver<E> observer) {
-    observers.add(observer);
-  }
-  public boolean removeObserver(SetObserver<E> observer) {
-    return observers.remove(observer);
-  }
-  private void notifyElementAdded(E element) {
-    for(SetObserver<E> observer : observers) {
-      observer.added(this, element);
-    }
+  public class ObservableSet<E> extends ForwardingSet<E> {
+      public ObservableSet(Set<E> s) {
+          super(s);
+      }
+    
+      private final List<SetObserver<E>> observers = new CopyOnWriteArrayList<>();
+    
+      public void addObserver(SetObserver<E> observer) {
+          observers.add(observer);
+      }
+    
+      public boolean removeObserver(SetObserver<E> observer) {
+          return observers.remove(observer);
+      }
+    
+      private void notifyElementAdded(E element) {
+          for(SetObserver<E> observer : observers) {
+              observer.added(this, element);
+          }
+      }
   }
   ```
   - 동시성 컬렉션 라이브러리의 CopyOnWrIteArrayList가 동기화 블록을 바깥으로 옮기기 위한 목적으로 설계됨
@@ -125,7 +135,7 @@
     - java.util.concurrnt
     - 클라이언트가 외부에서 객체 전체에 락을 거는 것보다 동시성을 월등히 개선할때만 선택
 * 지침을 어긴 예
-  - StringBuilder
+  - StringBuffer
     - 거의 단일 스레이드에서 동작하는데도 내부 동기화 수행
     - 동기화를 수행하지 않는 StringBuilder가 추후 개발
   - Random
